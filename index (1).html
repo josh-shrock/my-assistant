@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Assistant</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh;line-height:1.5}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+:root{
+  --bg:#f5f4f0;--surface:#ffffff;--surface-2:#f0efe9;--border:#e2e0d8;--border-strong:#c8c5bc;
+  --text:#1a1a18;--text-2:#5c5b56;--text-3:#9b9a94;
+  --accent:#1a5c3a;--accent-light:#e8f4ee;--accent-text:#1a5c3a;
+  --red:#b03a2e;--red-light:#fceee9;--amber:#8a5c0a;--amber-light:#fdf3e3;
+  --blue:#1a4a7a;--blue-light:#e8f0fb;--purple:#3d2d8a;--purple-light:#efecfd;
+  --radius:10px;--radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.05);
+}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:1.25rem 0;flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto}
+.main{margin-left:220px;flex:1;padding:2rem 2rem 4rem;max-width:960px}
+.sidebar-logo{padding:0 1.25rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
+.sidebar-logo-text{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.sidebar-logo-sub{font-size:11px;color:var(--text-3);margin-top:1px}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.07em;color:var(--text-3);padding:.875rem 1.25rem .25rem;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:9px;padding:.5rem 1.25rem;font-size:13.5px;color:var(--text-2);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .12s,color .12s}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{background:var(--accent-light);color:var(--accent-text);font-weight:500}
+.nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--red-light);color:var(--red);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+.nav-bottom{margin-top:auto;padding:.75rem 1.25rem 0;border-top:1px solid var(--border)}
+
+/* Page */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;gap:1rem;flex-wrap:wrap}
+.page-title{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.page-sub{font-size:13px;color:var(--text-3);margin-top:3px}
+
+/* Stats */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1rem}
+.stat-num{font-size:26px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.stat-label{font-size:11px;color:var(--text-3);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.stat-red{color:var(--red)}.stat-amber{color:var(--amber)}.stat-blue{color:var(--blue)}.stat-green{color:var(--accent)}
+
+/* Week mini-grid */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:1.5rem}
+.week-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.625rem .5rem;min-height:100px}
+.week-col.is-today{border-color:var(--accent);border-width:1.5px}
+.wc-name{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.wc-num{font-size:18px;font-weight:600;line-height:1.2;margin-bottom:5px}
+.week-col.is-today .wc-num{color:var(--accent)}
+.wc-pip{font-size:10px;line-height:1.3;padding:2px 5px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pip-work{background:var(--blue-light);color:var(--blue)}
+.pip-personal{background:var(--purple-light);color:var(--purple)}
+.pip-cal{background:var(--amber-light);color:var(--amber)}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem}
+.toolbar-left{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);font-size:12.5px;color:var(--text);cursor:pointer;transition:background .12s;white-space:nowrap;font-weight:500}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--text);color:var(--surface);border-color:var(--text)}
+.btn-primary:hover{opacity:.85;background:var(--text)}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{opacity:.88;background:var(--accent)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-icon{padding:5px 6px}
+.btn-danger{color:var(--red);border-color:transparent}
+.btn-danger:hover{background:var(--red-light);border-color:var(--red-light)}
+
+/* Task list */
+.task-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem}
+.task-item{display:flex;align-items:flex-start;gap:11px;padding:.75rem 1rem;border-bottom:1px solid var(--border);transition:background .1s}
+.task-item:last-child{border-bottom:none}
+.task-item:hover{background:var(--surface-2)}
+.task-item.is-done{opacity:.5}
+.check-btn{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border-strong);background:transparent;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .12s;padding:0;font-size:12px;color:#fff;font-weight:700}
+.check-btn.checked{background:var(--accent);border-color:var(--accent)}
+.task-body{flex:1;min-width:0}
+.task-name{font-size:14px;color:var(--text);line-height:1.4;word-break:break-word}
+.task-name.struck{text-decoration:line-through;color:var(--text-3)}
+.task-chips{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.chip{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500;white-space:nowrap}
+.chip-red{background:var(--red-light);color:var(--red)}
+.chip-amber{background:var(--amber-light);color:var(--amber)}
+.chip-green{background:var(--accent-light);color:var(--accent-text)}
+.chip-gray{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.chip-blue{background:var(--blue-light);color:var(--blue)}
+.chip-purple{background:var(--purple-light);color:var(--purple)}
+.task-actions{display:flex;gap:3px;flex-shrink:0;opacity:0;transition:opacity .12s}
+.task-item:hover .task-actions{opacity:1}
+
+/* Form */
+.form-panel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.form-input{width:100%;padding:7px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;outline:none;transition:border-color .12s}
+.form-input:focus{border-color:var(--accent)}
+.form-input.full{width:100%;margin-bottom:8px}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:.25rem}
+
+/* Projects */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;margin-bottom:1rem}
+.project-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.125rem}
+.project-card-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.project-card-meta{font-size:12px;color:var(--text-3);margin-bottom:.625rem}
+.progress-track{background:var(--surface-2);border-radius:6px;height:5px;overflow:hidden;margin-bottom:5px}
+.progress-fill{height:5px;border-radius:6px;transition:width .4s}
+.progress-pct{font-size:12px;color:var(--text-2);font-weight:500}
+
+/* Planner */
+.copy-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.125rem 1.25rem;margin-bottom:1rem}
+.copy-box-title{font-size:14px;font-weight:600;margin-bottom:.375rem}
+.copy-box-sub{font-size:13px;color:var(--text-2);line-height:1.5;margin-bottom:.875rem}
+.copy-steps{counter-reset:step;margin-bottom:.875rem}
+.copy-step{display:flex;gap:.75rem;align-items:flex-start;margin-bottom:.5rem;font-size:13px;color:var(--text-2);line-height:1.4}
+.copy-step-num{width:20px;height:20px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+
+/* Full calendar view */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.cal-month-label{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.cal-import-bar{background:var(--amber-light);border:1px solid #e8c97a;border-radius:var(--radius);padding:.875rem 1.125rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.cal-import-text{font-size:13px;color:var(--amber)}
+.cal-import-text strong{display:block;margin-bottom:2px;font-size:13.5px}
+.cal-sync-bar{background:var(--accent-light);border:1px solid #9fd4b8;border-radius:var(--radius);padding:.75rem 1.125rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.cal-sync-text{font-size:13px;color:var(--accent-text)}
+.cal-grid{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.cal-daynames{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.cal-dayname{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);padding:.5rem;text-align:center}
+.cal-weeks{display:grid}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.cal-week:last-child{border-bottom:none}
+.cal-cell{min-height:90px;padding:.375rem .5rem;border-right:1px solid var(--border);position:relative}
+.cal-cell:last-child{border-right:none}
+.cal-cell.other-month .cal-cell-num{color:var(--text-3)}
+.cal-cell.is-today{background:var(--accent-light)}
+.cal-cell.is-today .cal-cell-num{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.cal-cell-num{font-size:12px;font-weight:500;margin-bottom:3px;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-event{font-size:10px;line-height:1.3;padding:1px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.cal-event:hover{opacity:.8}
+.ce-task-work{background:var(--blue-light);color:var(--blue)}
+.ce-task-personal{background:var(--purple-light);color:var(--purple)}
+.ce-gcal{background:var(--amber-light);color:var(--amber)}
+.cal-more{font-size:10px;color:var(--text-3);padding-left:4px}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);padding:1.5rem;width:380px;max-width:100%;box-shadow:var(--shadow-md)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:1rem}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem}
+.modal-body{font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:.75rem}
+.modal-body ol{padding-left:1.25rem;margin-top:.5rem}
+.modal-body li{margin-bottom:.375rem}
+.modal-body a{color:var(--accent)}
+.modal-body code{background:var(--surface-2);padding:1px 5px;border-radius:3px;font-size:12px}
+
+/* Toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:var(--surface);font-size:13px;padding:.625rem 1rem;border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:999;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* Empty */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text-3)}
+.empty-icon{font-size:32px;margin-bottom:.5rem;opacity:.35}
+.empty-text{font-size:13px}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;padding:.75rem 1rem;border-right:none;border-bottom:1px solid var(--border)}
+  .main{margin-left:0;padding:1rem 1rem 3rem}
+  .sidebar-logo{padding:0 0 .75rem;border-bottom:none;margin-bottom:0;flex-basis:100%}
+  .nav-section{display:none}
+  .nav-item{padding:.5rem .75rem;border-radius:var(--radius-sm);font-size:12px}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .week-grid{gap:3px}
+  .wc-name{font-size:9px}
+  .wc-num{font-size:14px}
+  .form-row{grid-template-columns:1fr}
+  .page-header{flex-direction:column;gap:.5rem}
+  .cal-cell{min-height:60px}
+  .cal-event{display:none}
+  .cal-cell.is-today .cal-event{display:block}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">My Assistant</div>
+      <div class="sidebar-logo-sub" id="today-label"></div>
+    </div>
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" data-view="dashboard" onclick="nav('dashboard')">
+      <span class="nav-icon">◈</span> Dashboard
+    </button>
+    <div class="nav-section">Tasks</div>
+    <button class="nav-item" data-view="work" onclick="nav('work')">
+      <span class="nav-icon">⬡</span> Work
+      <span class="nav-badge" id="work-badge" style="display:none"></span>
+    </button>
+    <button class="nav-item" data-view="personal" onclick="nav('personal')">
+      <span class="nav-icon">◎</span> Personal
+      <span class="nav-badge" id="personal-badge" style="display:none"></span>
+    </button>
+    <div class="nav-section">Goals</div>
+    <button class="nav-item" data-view="projects" onclick="nav('projects')">
+      <span class="nav-icon">▲</span> Projects
+    </button>
+    <div class="nav-section">Planning</div>
+    <button class="nav-item" data-view="calendar" onclick="nav('calendar')">
+      <span class="nav-icon">▦</span> Calendar
+    </button>
+    <button class="nav-item" data-view="planner" onclick="nav('planner')">
+      <span class="nav-icon">✦</span> Week Planner
+    </button>
+    <div class="nav-bottom">
+      <button class="btn btn-sm" style="width:100%;justify-content:center" onclick="nav('planner')">✦ Plan this week →</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main" id="main-content"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Edit modal -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">Edit task</div>
+    <input class="form-input full" id="edit-title" placeholder="Task title" />
+    <div class="form-row" style="margin-bottom:8px">
+      <select class="form-input" id="edit-priority">
+        <option value="high">High priority</option>
+        <option value="medium">Medium priority</option>
+        <option value="low">Low priority</option>
+      </select>
+      <input class="form-input" type="date" id="edit-due" />
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <input class="form-input" id="edit-category" placeholder="Category" />
+      <input class="form-input" id="edit-project" placeholder="Project / goal" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- iCal instructions modal -->
+<div class="modal-bg" id="ical-modal">
+  <div class="modal">
+    <div class="modal-title">How to export from Google Calendar</div>
+    <div class="modal-body">
+      This takes about 60 seconds:
+      <ol>
+        <li>Go to <a href="https://calendar.google.com" target="_blank">calendar.google.com</a></li>
+        <li>Click the ⚙ gear icon → <strong>Settings</strong></li>
+        <li>In the left sidebar, click your calendar name under "My calendars"</li>
+        <li>Scroll to <strong>Export calendar</strong> → click <strong>Export</strong></li>
+        <li>Unzip the downloaded file — you'll get a <code>.ics</code> file</li>
+        <li>Come back here and click <strong>Import .ics file</strong></li>
+      </ol>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeIcalModal()">Close</button>
+      <label class="btn btn-accent" style="cursor:pointer">
+        Import .ics file
+        <input type="file" accept=".ics" style="display:none" onchange="handleIcsUpload(event)">
+      </label>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── State ── */
+const STORE = 'jassist_v3';
+let state = {
+  workTasks: [
+    {id:'w1',title:'Follow up on Flex Yoga survey results',done:false,priority:'high',due:'2026-06-27',category:'marketing',project:'Flex Yoga Partnership'},
+    {id:'w2',title:'Post week 2 Athlete S&C content on Facebook',done:false,priority:'medium',due:'2026-06-30',category:'social media',project:'Athlete S&C Program'},
+    {id:'w3',title:'Draft July newsletter for The Club',done:false,priority:'medium',due:'2026-07-01',category:'marketing',project:'Member Comms'},
+    {id:'w4',title:'Reach out to Hiland soccer coach re: fall S&C',done:false,priority:'high',due:'2026-06-28',category:'sales',project:'Athlete S&C Program'},
+    {id:'w5',title:'Review annual member survey responses',done:false,priority:'low',due:'2026-07-05',category:'strategy',project:'Strategic Planning'},
+    {id:'w6',title:'Update Google Business Profile photos',done:false,priority:'low',due:'2026-07-08',category:'marketing',project:''},
+  ],
+  personalTasks: [
+    {id:'p1',title:'HYROX training — interval run session',done:false,priority:'high',due:'2026-06-25',category:'training',project:'HYROX Prep'},
+    {id:'p2',title:'HYROX training — sled + row brick',done:false,priority:'high',due:'2026-06-27',category:'training',project:'HYROX Prep'},
+    {id:'p3',title:'Car oil change + tire rotation',done:false,priority:'medium',due:'2026-07-01',category:'errands',project:''},
+    {id:'p4',title:'Bible reading — NT block',done:false,priority:'high',due:'',category:'faith',project:'Devotional'},
+    {id:'p5',title:'LoL ranked sessions (5 games)',done:false,priority:'low',due:'2026-06-29',category:'personal',project:''},
+    {id:'p6',title:'Grocery run',done:false,priority:'medium',due:'2026-06-26',category:'errands',project:''},
+  ],
+  calEvents: [],       // imported from Google Calendar .ics
+  calLastSync: null,   // timestamp string
+  calViewMonth: null,  // "YYYY-MM" for calendar nav
+};
+let currentView = 'dashboard';
+let editingId = null, editingTab = null;
+
+/* ── Persistence ── */
+function load(){
+  try{const s=localStorage.getItem(STORE);if(s){const p=JSON.parse(s);state={...state,...p};}}catch(e){}
+}
+function save(){
+  try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}
+}
+
+/* ── Utils ── */
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function daysUntil(d){
+  if(!d)return null;
+  const today=new Date();today.setHours(0,0,0,0);
+  return Math.round((new Date(d+'T00:00:00')-today)/86400000);
+}
+function dueBadge(d){
+  const n=daysUntil(d);if(n===null)return null;
+  if(n<0)return{label:'Overdue',cls:'chip-red'};
+  if(n===0)return{label:'Today',cls:'chip-red'};
+  if(n<=2)return{label:n+'d left',cls:'chip-red'};
+  if(n<=7)return{label:n+'d left',cls:'chip-amber'};
+  return{label:n+'d left',cls:'chip-green'};
+}
+function priorityBadge(p){
+  return{high:{label:'High',cls:'chip-red'},medium:{label:'Medium',cls:'chip-amber'},low:{label:'Low',cls:'chip-gray'}}[p]||null;
+}
+function sortTasks(arr){
+  return[...arr].sort((a,b)=>{
+    if(a.done!==b.done)return a.done?1:-1;
+    const po={high:0,medium:1,low:2};
+    if(po[a.priority]!==po[b.priority])return po[a.priority]-po[b.priority];
+    if(a.due&&b.due)return new Date(a.due)-new Date(b.due);
+    if(a.due)return-1;if(b.due)return 1;return 0;
+  });
+}
+function allTasks(){return[...state.workTasks,...state.personalTasks];}
+function weekDates(){
+  const today=new Date(),dow=today.getDay();
+  return Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-dow+i);return d;});
+}
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYS_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+/* ── Navigation ── */
+function nav(view){
+  currentView=view;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.view===view));
+  render();
+}
+
+/* ── Toast ── */
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+/* ── Edit modal ── */
+function openEdit(id,tab){
+  editingId=id;editingTab=tab;
+  const arr=tab==='work'?state.workTasks:state.personalTasks;
+  const t=arr.find(x=>x.id===id);if(!t)return;
+  document.getElementById('edit-title').value=t.title;
+  document.getElementById('edit-priority').value=t.priority;
+  document.getElementById('edit-due').value=t.due||'';
+  document.getElementById('edit-category').value=t.category||'';
+  document.getElementById('edit-project').value=t.project||'';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEdit(){document.getElementById('edit-modal').classList.remove('open');editingId=null;}
+function saveEdit(){
+  if(!editingId)return;
+  const arr=editingTab==='work'?state.workTasks:state.personalTasks;
+  const i=arr.findIndex(x=>x.id===editingId);if(i<0)return;
+  arr[i]={...arr[i],
+    title:document.getElementById('edit-title').value.trim()||arr[i].title,
+    priority:document.getElementById('edit-priority').value,
+    due:document.getElementById('edit-due').value,
+    category:document.getElementById('edit-category').value.trim(),
+    project:document.getElementById('edit-project').value.trim()
+  };
+  if(editingTab==='work')state.workTasks=arr;else state.personalTasks=arr;
+  save();closeEdit();render();toast('Task updated');
+}
+
+/* ── Task actions ── */
+function toggleTask(id,tab){
+  const arr=tab==='work'?state.workTasks:state.personalTasks;
+  const t=arr.find(x=>x.id===id);
+  if(t){t.done=!t.done;save();updateBadges();render();}
+}
+function deleteTask(id,tab){
+  if(tab==='work')state.workTasks=state.workTasks.filter(x=>x.id!==id);
+  else state.personalTasks=state.personalTasks.filter(x=>x.id!==id);
+  save();render();toast('Task removed');
+}
+function addTask(tab){
+  const titleEl=document.getElementById('new-title');
+  const title=titleEl?titleEl.value.trim():'';
+  if(!title){toast('Add a title first');return;}
+  const t={
+    id:uid(),title,done:false,
+    priority:document.getElementById('new-priority').value,
+    due:document.getElementById('new-due').value,
+    category:document.getElementById('new-category').value.trim(),
+    project:document.getElementById('new-project').value.trim()
+  };
+  if(tab==='work')state.workTasks.unshift(t);else state.personalTasks.unshift(t);
+  save();render();toast('Task added');
+}
+function toggleAddForm(){
+  const f=document.getElementById('add-form');
+  if(f){
+    const show=f.style.display==='none'||f.style.display==='';
+    f.style.display=show?'block':'none';
+    if(show)setTimeout(()=>document.getElementById('new-title')&&document.getElementById('new-title').focus(),50);
+  }
+}
+
+/* ── Badges ── */
+function updateBadges(){
+  const urgent=t=>!t.done&&t.due&&daysUntil(t.due)<=2;
+  const wu=state.workTasks.filter(urgent).length;
+  const pu=state.personalTasks.filter(urgent).length;
+  const wb=document.getElementById('work-badge');
+  const pb=document.getElementById('personal-badge');
+  if(wb){wb.textContent=wu;wb.style.display=wu>0?'':'none';}
+  if(pb){pb.textContent=pu;pb.style.display=pu>0?'':'none';}
+}
+
+/* ── iCal / Google Calendar import ── */
+function openIcalModal(){document.getElementById('ical-modal').classList.add('open');}
+function closeIcalModal(){document.getElementById('ical-modal').classList.remove('open');}
+
+function handleIcsUpload(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const text=e.target.result;
+    const events=parseIcs(text);
+    state.calEvents=events;
+    state.calLastSync=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+    save();closeIcalModal();render();
+    toast(`Imported ${events.length} calendar events`);
+  };
+  reader.readAsText(file);
+}
+
+function parseIcs(text){
+  const events=[];
+  const lines=text.replace(/\r\n /g,'').replace(/\r\n\t/g,'').split(/\r\n|\r|\n/);
+  let current=null;
+  for(const line of lines){
+    if(line==='BEGIN:VEVENT'){current={};}
+    else if(line==='END:VEVENT'){
+      if(current&&current.start&&current.title){
+        // Only keep events in a reasonable window: 60 days back, 180 days forward
+        const now=new Date();
+        const cutBack=new Date(now);cutBack.setDate(cutBack.getDate()-60);
+        const cutFwd=new Date(now);cutFwd.setDate(cutFwd.getDate()+180);
+        if(current.start>=cutBack&&current.start<=cutFwd){
+          events.push({
+            id:'gc-'+uid(),
+            title:current.title,
+            start:current.start,
+            end:current.end||current.start,
+            allDay:current.allDay||false,
+            location:current.location||''
+          });
+        }
+      }
+      current=null;
+    }
+    else if(current){
+      if(line.startsWith('SUMMARY:')){current.title=line.slice(8).replace(/\\n/g,' ').replace(/\\,/g,',').trim();}
+      else if(line.startsWith('LOCATION:')){current.location=line.slice(9).replace(/\\n/g,' ').trim();}
+      else if(line.startsWith('DTSTART;VALUE=DATE:')){
+        const ds=line.slice(19);
+        current.start=new Date(ds.slice(0,4)+'-'+ds.slice(4,6)+'-'+ds.slice(6,8)+'T00:00:00');
+        current.allDay=true;
+      }
+      else if(line.startsWith('DTSTART:')){
+        const ds=line.slice(8).replace('Z','');
+        try{
+          const y=ds.slice(0,4),mo=ds.slice(4,6),d=ds.slice(6,8);
+          const h=ds.slice(9,11)||'00',mi=ds.slice(11,13)||'00';
+          current.start=new Date(`${y}-${mo}-${d}T${h}:${mi}:00`);
+        }catch(e){}
+      }
+      else if(line.startsWith('DTEND;VALUE=DATE:')){
+        const ds=line.slice(17);
+        current.end=new Date(ds.slice(0,4)+'-'+ds.slice(4,6)+'-'+ds.slice(6,8)+'T00:00:00');
+      }
+      else if(line.startsWith('DTEND:')){
+        const ds=line.slice(6).replace('Z','');
+        try{
+          const y=ds.slice(0,4),mo=ds.slice(4,6),d=ds.slice(6,8);
+          const h=ds.slice(9,11)||'00',mi=ds.slice(11,13)||'00';
+          current.end=new Date(`${y}-${mo}-${d}T${h}:${mi}:00`);
+        }catch(e){}
+      }
+    }
+  }
+  // Sort by start date
+  events.sort((a,b)=>a.start-b.start);
+  return events;
+}
+
+function fmtTime(date){
+  if(!date)return'';
+  let h=date.getHours(),m=date.getMinutes();
+  const ampm=h>=12?'pm':'am';
+  h=h%12||12;
+  return h+(m>0?':'+String(m).padStart(2,'0'):'')+ampm;
+}
+
+/* ── Copy for Claude ── */
+function copyForClaude(){
+  const today=new Date();
+  const wd=weekDates();
+  const weekStr=wd.map(d=>DAYS_FULL[d.getDay()]+' '+(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()).join(', ');
+
+  let text='=== WEEKLY PLANNING SNAPSHOT FOR CLAUDE ===\n';
+  text+=`Date: ${today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}\n`;
+  text+=`Week: ${weekStr}\n\n`;
+
+  text+='── OPEN WORK TASKS ──\n';
+  const wOpen=state.workTasks.filter(t=>!t.done);
+  if(wOpen.length===0){text+='(none)\n';}
+  else{wOpen.forEach(t=>{
+    text+=`• [${t.priority.toUpperCase()}] ${t.title}`;
+    if(t.due){const n=daysUntil(t.due);text+=` (due ${t.due}${n<0?' — OVERDUE':n===0?' — TODAY':' — '+n+'d'})`;};
+    if(t.project)text+=` | Project: ${t.project}`;
+    if(t.category)text+=` | ${t.category}`;
+    text+='\n';
+  });}
+
+  text+='\n── OPEN PERSONAL TASKS ──\n';
+  const pOpen=state.personalTasks.filter(t=>!t.done);
+  if(pOpen.length===0){text+='(none)\n';}
+  else{pOpen.forEach(t=>{
+    text+=`• [${t.priority.toUpperCase()}] ${t.title}`;
+    if(t.due){const n=daysUntil(t.due);text+=` (due ${t.due}${n<0?' — OVERDUE':n===0?' — TODAY':' — '+n+'d'})`;};
+    if(t.project)text+=` | Project: ${t.project}`;
+    if(t.category)text+=` | ${t.category}`;
+    text+='\n';
+  });}
+
+  if(state.calEvents&&state.calEvents.length>0){
+    text+='\n── GOOGLE CALENDAR EVENTS THIS WEEK ──\n';
+    const weekStart=wd[0];weekStart.setHours(0,0,0,0);
+    const weekEnd=wd[6];weekEnd.setHours(23,59,59,999);
+    const thisWeek=state.calEvents.filter(e=>e.start>=weekStart&&e.start<=weekEnd);
+    if(thisWeek.length===0){text+='(no events this week)\n';}
+    else{thisWeek.forEach(e=>{
+      const d=e.start;
+      text+=`• ${DAYS_FULL[d.getDay()]} ${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+      if(!e.allDay)text+=` at ${fmtTime(e.start)}`;
+      text+=` — ${e.title}`;
+      if(e.location)text+=` @ ${e.location}`;
+      text+='\n';
+    });}
+
+    text+='\n── UPCOMING CALENDAR EVENTS (next 2 weeks) ──\n';
+    const twoWeeks=new Date(today);twoWeeks.setDate(today.getDate()+14);
+    const upcoming=state.calEvents.filter(e=>e.start>weekEnd&&e.start<=twoWeeks);
+    if(upcoming.length===0){text+='(none)\n';}
+    else{upcoming.forEach(e=>{
+      const d=e.start;
+      text+=`• ${DAYS_FULL[d.getDay()]} ${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+      if(!e.allDay)text+=` at ${fmtTime(e.start)}`;
+      text+=` — ${e.title}`;
+      text+='\n';
+    });}
+  }
+
+  text+='\n── COMPLETED RECENTLY ──\n';
+  const done=allTasks().filter(t=>t.done);
+  if(done.length===0){text+='(none)\n';}
+  else{done.slice(0,5).forEach(t=>{text+=`✓ ${t.title}\n`;});}
+
+  text+='\n===\nPlease build me a realistic week plan for the week above. Schedule around any calendar events shown. Factor in my HYROX training (race August 1 — running is my main gap, I need at least one run session and one sled/row brick per week). I work at The Club gym in Berlin OH as the manager. Keep faith/Bible reading on the schedule daily or every other day. Return a day-by-day schedule with suggested times.';
+
+  navigator.clipboard.writeText(text).then(()=>{
+    toast('Copied! Paste into Claude to get your week plan.');
+  }).catch(()=>{
+    // Fallback: show in textarea
+    const ta=document.getElementById('copy-fallback');
+    if(ta){ta.style.display='block';ta.value=text;ta.select();}
+    toast('Select all text in the box below and copy it');
+  });
+}
+
+/* ── Calendar view helpers ── */
+function getCalMonth(){
+  if(state.calViewMonth){
+    const parts=state.calViewMonth.split('-');
+    return{year:parseInt(parts[0]),month:parseInt(parts[1])};
+  }
+  const now=new Date();
+  return{year:now.getFullYear(),month:now.getMonth()};
+}
+function calNav(delta){
+  const{year,month}=getCalMonth();
+  const d=new Date(year,month+delta,1);
+  state.calViewMonth=d.getFullYear()+'-'+d.getMonth();
+  render();
+}
+
+/* ── Render helpers ── */
+function renderChips(task){
+  let html='';
+  const p=priorityBadge(task.priority),d=dueBadge(task.due);
+  if(p&&!task.done)html+=`<span class="chip ${p.cls}">${p.label}</span>`;
+  if(d&&!task.done)html+=`<span class="chip ${d.cls}">${d.label}</span>`;
+  if(task.category)html+=`<span class="chip chip-gray">${esc(task.category)}</span>`;
+  if(task.project)html+=`<span class="chip chip-purple">${esc(task.project)}</span>`;
+  return html;
+}
+function renderTaskList(tasks,tab){
+  if(tasks.length===0)return`<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">All clear — add a task above</div></div>`;
+  return tasks.map(t=>`
+    <div class="task-item${t.done?' is-done':''}">
+      <button class="check-btn${t.done?' checked':''}" onclick="toggleTask('${t.id}','${tab}')" aria-label="${t.done?'Mark incomplete':'Mark complete'}">${t.done?'✓':''}</button>
+      <div class="task-body">
+        <div class="task-name${t.done?' struck':''}">${esc(t.title)}</div>
+        <div class="task-chips">${renderChips(t)}</div>
+      </div>
+      <div class="task-actions">
+        <button class="btn btn-icon btn-sm" onclick="openEdit('${t.id}','${tab}')" aria-label="Edit">✎</button>
+        <button class="btn btn-icon btn-sm btn-danger" onclick="deleteTask('${t.id}','${tab}')" aria-label="Delete">✕</button>
+      </div>
+    </div>`).join('');
+}
+function renderAddForm(tab){
+  const cats=tab==='work'
+    ?['marketing','social media','sales','strategy','admin','operations','training','other']
+    :['training','errands','health','faith','personal','family','finance','other'];
+  return`<div class="form-panel" id="add-form" style="display:none">
+    <input class="form-input full" id="new-title" placeholder="Task title…" onkeydown="if(event.key==='Enter')addTask('${tab}')" />
+    <div class="form-row">
+      <select class="form-input" id="new-priority">
+        <option value="high">High priority</option>
+        <option value="medium">Medium priority</option>
+        <option value="low">Low priority</option>
+      </select>
+      <input class="form-input" type="date" id="new-due" />
+    </div>
+    <div class="form-row" style="margin-bottom:.75rem">
+      <select class="form-input" id="new-category">
+        <option value="">Category…</option>
+        ${cats.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
+      <input class="form-input" id="new-project" placeholder="Project / goal (optional)" />
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="toggleAddForm()">Cancel</button>
+      <button class="btn btn-primary" onclick="addTask('${tab}')">Add task</button>
+    </div>
+  </div>`;
+}
+
+/* ── Views ── */
+function viewDashboard(){
+  const today=new Date();
+  const all=allTasks();
+  const overdue=all.filter(t=>!t.done&&t.due&&daysUntil(t.due)<0).length;
+  const dueToday=all.filter(t=>!t.done&&t.due&&daysUntil(t.due)===0).length;
+  const dueWeek=all.filter(t=>!t.done&&t.due&&daysUntil(t.due)>0&&daysUntil(t.due)<=7).length;
+  const done=all.filter(t=>t.done).length;
+
+  const wd=weekDates();
+  const byDate={};
+  wd.forEach(d=>{byDate[d.toDateString()]=[];});
+  state.workTasks.forEach(t=>{
+    if(!t.due)return;
+    const k=new Date(t.due+'T00:00:00').toDateString();
+    if(byDate[k])byDate[k].push({...t,_tab:'work'});
+  });
+  state.personalTasks.forEach(t=>{
+    if(!t.due)return;
+    const k=new Date(t.due+'T00:00:00').toDateString();
+    if(byDate[k])byDate[k].push({...t,_tab:'personal'});
+  });
+  state.calEvents.forEach(e=>{
+    const k=e.start.toDateString();
+    if(byDate[k])byDate[k].push({...e,_tab:'gcal'});
+  });
+
+  const weekHTML=wd.map(d=>{
+    const isToday=d.toDateString()===today.toDateString();
+    const evts=byDate[d.toDateString()]||[];
+    const pips=evts.slice(0,3).map(e=>`<div class="wc-pip ${e._tab==='work'?'pip-work':e._tab==='gcal'?'pip-cal':'pip-personal'}" title="${esc(e.title)}">${esc(e.title.length>14?e.title.slice(0,13)+'…':e.title)}</div>`).join('');
+    const more=evts.length>3?`<div style="font-size:10px;color:var(--text-3)">+${evts.length-3}</div>`:'';
+    return`<div class="week-col${isToday?' is-today':''}">
+      <div class="wc-name">${DAYS[d.getDay()]}</div>
+      <div class="wc-num">${d.getDate()}</div>${pips}${more}
+    </div>`;
+  }).join('');
+
+  const upcoming=[...state.workTasks,...state.personalTasks]
+    .filter(t=>!t.done&&t.due).sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,6);
+  const upcomingHTML=upcoming.length===0
+    ?`<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">No upcoming deadlines</div></div>`
+    :upcoming.map(t=>{
+        const b=dueBadge(t.due),pb=priorityBadge(t.priority);
+        const isWork=!!state.workTasks.find(x=>x.id===t.id);
+        return`<div class="task-item">
+          <div class="task-body">
+            <div class="task-name">${esc(t.title)}</div>
+            <div class="task-chips">
+              <span class="chip ${isWork?'chip-blue':'chip-purple'}">${isWork?'Work':'Personal'}</span>
+              ${pb?`<span class="chip ${pb.cls}">${pb.label}</span>`:''}
+              ${b?`<span class="chip ${b.cls}">${b.label}</span>`:''}
+              ${t.project?`<span class="chip chip-gray">${esc(t.project)}</span>`:''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+  return`
+    <div class="page-header">
+      <div><div class="page-title">Dashboard</div><div class="page-sub">${DAYS_FULL[today.getDay()]}, ${MONTHS[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}</div></div>
+      <button class="btn btn-accent" onclick="nav('planner')">✦ Plan this week →</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-num stat-red">${overdue}</div><div class="stat-label">Overdue</div></div>
+      <div class="stat-card"><div class="stat-num stat-amber">${dueToday}</div><div class="stat-label">Due today</div></div>
+      <div class="stat-card"><div class="stat-num stat-blue">${dueWeek}</div><div class="stat-label">Due this week</div></div>
+      <div class="stat-card"><div class="stat-num stat-green">${done}</div><div class="stat-label">Completed</div></div>
+    </div>
+    <div class="toolbar"><div class="toolbar-left"><span class="section-label">This week</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <span class="chip chip-blue" style="font-size:11px">■ Work</span>
+        <span class="chip chip-purple" style="font-size:11px">■ Personal</span>
+        ${state.calEvents.length>0?'<span class="chip" style="background:var(--amber-light);color:var(--amber);font-size:11px">■ Calendar</span>':''}
+      </div>
+    </div>
+    <div class="week-grid" style="margin-bottom:1.5rem">${weekHTML}</div>
+    <div class="toolbar"><span class="section-label">Upcoming deadlines</span><button class="btn btn-sm" onclick="nav('work')">All tasks →</button></div>
+    <div class="task-list">${upcomingHTML}</div>`;
+}
+
+function viewTasks(tab){
+  const tasks=sortTasks(tab==='work'?state.workTasks:state.personalTasks);
+  const open=tasks.filter(t=>!t.done).length;
+  return`
+    <div class="page-header">
+      <div><div class="page-title">${tab==='work'?'⬡ Work tasks':'◎ Personal tasks'}</div>
+      <div class="page-sub">${open} open · ${tasks.length-open} completed</div></div>
+      <button class="btn btn-accent" onclick="toggleAddForm()">+ Add task</button>
+    </div>
+    ${renderAddForm(tab)}
+    <div class="task-list">${renderTaskList(tasks,tab)}</div>`;
+}
+
+function viewProjects(){
+  function buildProjects(tasks,tab){
+    const map={};
+    tasks.forEach(t=>{
+      if(!t.project)return;
+      if(!map[t.project])map[t.project]={total:0,done:0,tab};
+      map[t.project].total++;if(t.done)map[t.project].done++;
+    });
+    return map;
+  }
+  const wp=buildProjects(state.workTasks,'work');
+  const pp=buildProjects(state.personalTasks,'personal');
+  function cardHTML(name,{total,done,tab}){
+    const pct=total>0?Math.round((done/total)*100):0;
+    const color=tab==='work'?'#185FA5':'#3d2d8a';
+    return`<div class="project-card">
+      <div class="project-card-name">${esc(name)}</div>
+      <div class="project-card-meta">${done} of ${total} tasks · ${tab==='work'?'Work':'Personal'}</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="progress-pct">${pct}% complete</div>
+    </div>`;
+  }
+  const wKeys=Object.keys(wp),pKeys=Object.keys(pp);
+  return`
+    <div class="page-header"><div><div class="page-title">▲ Projects & Goals</div>
+    <div class="page-sub">Progress across all active work and personal projects</div></div></div>
+    ${wKeys.length>0?`<div class="toolbar" style="margin-top:.25rem"><span class="section-label">Work projects</span></div><div class="project-grid">${wKeys.map(k=>cardHTML(k,wp[k])).join('')}</div>`:''}
+    ${pKeys.length>0?`<div class="toolbar" style="margin-top:.5rem"><span class="section-label">Personal goals & areas</span></div><div class="project-grid">${pKeys.map(k=>cardHTML(k,pp[k])).join('')}</div>`:''}
+    ${wKeys.length===0&&pKeys.length===0?`<div class="empty" style="margin-top:2rem"><div class="empty-icon">▲</div><div class="empty-text">Tag tasks with a project name to track progress here</div></div>`:''}`;
+}
+
+function viewCalendar(){
+  const{year,month}=getCalMonth();
+  const today=new Date();
+  const firstDay=new Date(year,month,1);
+  const lastDay=new Date(year,month+1,0);
+  const startDow=firstDay.getDay();
+
+  // Build cell array
+  const cells=[];
+  for(let i=0;i<startDow;i++){
+    const d=new Date(year,month,1-startDow+i);
+    cells.push({date:d,otherMonth:true});
+  }
+  for(let d=1;d<=lastDay.getDate();d++){
+    cells.push({date:new Date(year,month,d),otherMonth:false});
+  }
+  while(cells.length%7!==0){
+    const last=cells[cells.length-1].date;
+    const d=new Date(last);d.setDate(d.getDate()+1);
+    cells.push({date:d,otherMonth:true});
+  }
+
+  // Map events to date strings
+  const evtMap={};
+  state.workTasks.forEach(t=>{
+    if(!t.due||t.done)return;
+    const k=t.due;
+    if(!evtMap[k])evtMap[k]=[];
+    evtMap[k].push({title:t.title,cls:'ce-task-work',allDay:true});
+  });
+  state.personalTasks.forEach(t=>{
+    if(!t.due||t.done)return;
+    const k=t.due;
+    if(!evtMap[k])evtMap[k]=[];
+    evtMap[k].push({title:t.title,cls:'ce-task-personal',allDay:true});
+  });
+  state.calEvents.forEach(e=>{
+    const d=e.start;
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(!evtMap[k])evtMap[k]=[];
+    const timeStr=e.allDay?'':fmtTime(e.start)+' ';
+    evtMap[k].push({title:timeStr+e.title,cls:'ce-gcal',allDay:e.allDay});
+  });
+
+  // Sort cal events first, then tasks
+  Object.keys(evtMap).forEach(k=>{
+    evtMap[k].sort((a,b)=>(a.allDay&&!b.allDay)?1:(!a.allDay&&b.allDay)?-1:0);
+  });
+
+  const weeks=[];
+  for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
+
+  const weeksHTML=weeks.map(week=>`
+    <div class="cal-week">${week.map(cell=>{
+      const isToday=cell.date.toDateString()===today.toDateString();
+      const k=cell.date.getFullYear()+'-'+String(cell.date.getMonth()+1).padStart(2,'0')+'-'+String(cell.date.getDate()).padStart(2,'0');
+      const evts=evtMap[k]||[];
+      const evtHTML=evts.slice(0,3).map(e=>`<div class="cal-event ${e.cls}" title="${esc(e.title)}">${esc(e.title.length>18?e.title.slice(0,17)+'…':e.title)}</div>`).join('');
+      const more=evts.length>3?`<div class="cal-more">+${evts.length-3} more</div>`:'';
+      return`<div class="cal-cell${cell.otherMonth?' other-month':''}${isToday?' is-today':''}">
+        <div class="cal-cell-num">${cell.date.getDate()}</div>
+        ${evtHTML}${more}
+      </div>`;
+    }).join('')}</div>`).join('');
+
+  const syncBar=state.calLastSync
+    ?`<div class="cal-sync-bar">
+        <div class="cal-sync-text"><strong>Calendar synced</strong>Last updated: ${esc(state.calLastSync)}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="openIcalModal()">↻ Re-import</button>
+          <button class="btn btn-sm btn-danger" onclick="clearCalendar()">Clear</button>
+        </div>
+      </div>`
+    :`<div class="cal-import-bar">
+        <div class="cal-import-text"><strong>No Google Calendar data yet</strong>Import your .ics file to see your events here alongside your tasks.</div>
+        <button class="btn btn-accent btn-sm" onclick="openIcalModal()">Import Google Calendar →</button>
+      </div>`;
+
+  return`
+    <div class="page-header">
+      <div><div class="page-title">▦ Calendar</div>
+      <div class="page-sub">Tasks with due dates + your Google Calendar events</div></div>
+    </div>
+    ${syncBar}
+    <div class="cal-header">
+      <div class="cal-month-label">${MONTHS[month]} ${year}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-right:8px">
+          <span class="chip chip-blue" style="font-size:11px">■ Work tasks</span>
+          <span class="chip chip-purple" style="font-size:11px">■ Personal tasks</span>
+          <span class="chip" style="background:var(--amber-light);color:var(--amber);font-size:11px">■ Google Cal</span>
+        </div>
+        <button class="btn btn-sm" onclick="calNav(-1)">← Prev</button>
+        <button class="btn btn-sm" onclick="calNav(0);state.calViewMonth=null;render()">Today</button>
+        <button class="btn btn-sm" onclick="calNav(1)">Next →</button>
+      </div>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-daynames">${DAYS.map(d=>`<div class="cal-dayname">${d}</div>`).join('')}</div>
+      <div class="cal-weeks">${weeksHTML}</div>
+    </div>`;
+}
+
+function clearCalendar(){
+  if(!confirm('Remove all imported calendar events?'))return;
+  state.calEvents=[];state.calLastSync=null;save();render();toast('Calendar cleared');
+}
+
+function viewPlanner(){
+  const hasCalendar=state.calEvents&&state.calEvents.length>0;
+  return`
+    <div class="page-header">
+      <div><div class="page-title">✦ Week Planner</div>
+      <div class="page-sub">Copy your snapshot, paste into Claude, get your week plan</div></div>
+      <button class="btn btn-accent" onclick="copyForClaude()">⎘ Copy for Claude</button>
+    </div>
+
+    <div class="copy-box">
+      <div class="copy-box-title">How to get your week plan</div>
+      <div class="copy-box-sub">One button copies everything Claude needs — your open tasks, deadlines, priorities${hasCalendar?', and your calendar events':''}. Paste it here and ask for a schedule.</div>
+      <div class="copy-steps">
+        <div class="copy-step"><span class="copy-step-num">1</span>Click <strong>"Copy for Claude"</strong> above — it bundles all your tasks${hasCalendar?' and calendar events':''} into one clean snapshot</div>
+        <div class="copy-step"><span class="copy-step-num">2</span>Open a new Claude chat (or use this one) and paste it in</div>
+        <div class="copy-step"><span class="copy-step-num">3</span>Claude builds a full day-by-day schedule, factoring in your deadlines, HYROX training, and priorities</div>
+        <div class="copy-step"><span class="copy-step-num">4</span>Copy the schedule back into the Calendar tab if you want it visible there</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-accent" onclick="copyForClaude()">⎘ Copy snapshot for Claude</button>
+        ${!hasCalendar?`<button class="btn" onclick="nav('calendar')">+ Import Google Calendar first</button>`:''}
+      </div>
+      <textarea id="copy-fallback" style="display:none;width:100%;margin-top:.875rem;height:160px;font-size:12px;font-family:monospace;padding:.5rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text)" readonly></textarea>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.125rem 1.25rem">
+      <div class="section-label" style="margin-bottom:.75rem">What the snapshot includes</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.625rem">
+        ${[
+          ['All open work tasks','with priority + due date'],
+          ['All open personal tasks','with priority + due date'],
+          hasCalendar?['Google Calendar events','this week + next 2 weeks']:['Google Calendar','not yet imported — add from Calendar tab'],
+          ['Recently completed','for context'],
+          ['HYROX context','race date + training needs'],
+        ].map(([title,sub])=>`<div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:.625rem .75rem">
+          <div style="font-size:13px;font-weight:500">${title}</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:2px">${sub}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+/* ── Main render ── */
+function render(){
+  const main=document.getElementById('main-content');
+  if(currentView==='dashboard')main.innerHTML=viewDashboard();
+  else if(currentView==='work')main.innerHTML=viewTasks('work');
+  else if(currentView==='personal')main.innerHTML=viewTasks('personal');
+  else if(currentView==='projects')main.innerHTML=viewProjects();
+  else if(currentView==='calendar')main.innerHTML=viewCalendar();
+  else if(currentView==='planner')main.innerHTML=viewPlanner();
+  updateBadges();
+}
+
+/* ── Init ── */
+const _today=new Date();
+document.getElementById('today-label').textContent=DAYS[_today.getDay()]+', '+MONTHS_SHORT[_today.getMonth()]+' '+_today.getDate();
+load();
+render();
+</script>
+</body>
+</html>
