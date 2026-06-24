@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Assistant</title>
+<style>
+/* ── Reset & base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh;line-height:1.5}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+
+/* ── Tokens ── */
+:root{
+  --bg:#f5f4f0;
+  --surface:#ffffff;
+  --surface-2:#f0efe9;
+  --border:#e2e0d8;
+  --border-strong:#c8c5bc;
+  --text:#1a1a18;
+  --text-2:#5c5b56;
+  --text-3:#9b9a94;
+  --accent:#1a5c3a;
+  --accent-light:#e8f4ee;
+  --accent-text:#1a5c3a;
+  --red:#b03a2e;
+  --red-light:#fceee9;
+  --amber:#8a5c0a;
+  --amber-light:#fdf3e3;
+  --blue:#1a4a7a;
+  --blue-light:#e8f0fb;
+  --purple:#3d2d8a;
+  --purple-light:#efecfd;
+  --radius:10px;
+  --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.05);
+}
+
+/* ── Layout ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:1.25rem 0;flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.main{margin-left:220px;flex:1;max-width:860px;padding:2rem 2rem 4rem}
+.sidebar-logo{padding:0 1.25rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
+.sidebar-logo-text{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+.sidebar-logo-sub{font-size:11px;color:var(--text-3);margin-top:1px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:.5rem 1.25rem;font-size:13.5px;color:var(--text-2);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-radius:0;transition:background .12s,color .12s}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{background:var(--accent-light);color:var(--accent-text);font-weight:500}
+.nav-icon{font-size:16px;width:18px;text-align:center;flex-shrink:0}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.07em;color:var(--text-3);padding:.875rem 1.25rem .25rem;text-transform:uppercase}
+.nav-badge{margin-left:auto;background:var(--red-light);color:var(--red);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+
+/* ── Page header ── */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;gap:1rem}
+.page-title{font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--text);line-height:1.2}
+.page-sub{font-size:13px;color:var(--text-3);margin-top:3px}
+
+/* ── Stat row ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1rem}
+.stat-num{font-size:26px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.stat-label{font-size:11px;color:var(--text-3);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.stat-red{color:var(--red)}
+.stat-amber{color:var(--amber)}
+.stat-blue{color:var(--blue)}
+.stat-green{color:var(--accent)}
+
+/* ── Week calendar ── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:1.5rem}
+.week-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.625rem .5rem;min-height:100px}
+.week-col.is-today{border-color:var(--accent);border-width:1.5px}
+.wc-name{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.wc-num{font-size:18px;font-weight:600;line-height:1.2;margin-bottom:5px}
+.week-col.is-today .wc-num{color:var(--accent)}
+.wc-pip{font-size:10px;line-height:1.3;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pip-work{background:var(--blue-light);color:var(--blue)}
+.pip-personal{background:var(--purple-light);color:var(--purple)}
+.pip-ai{background:var(--accent-light);color:var(--accent-text)}
+
+/* ── Section toolbar ── */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.toolbar-left{display:flex;align-items:center;gap:.75rem}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)}
+.count-pill{font-size:11px;background:var(--surface-2);color:var(--text-2);padding:1px 8px;border-radius:10px;font-weight:500}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);font-size:12.5px;color:var(--text);cursor:pointer;transition:background .12s,border-color .12s;white-space:nowrap;font-weight:500}
+.btn:hover{background:var(--surface-2)}
+.btn-primary{background:var(--text);color:var(--surface);border-color:var(--text)}
+.btn-primary:hover{opacity:.85;background:var(--text)}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{opacity:.88;background:var(--accent)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-icon{padding:5px 6px;border-radius:var(--radius-sm)}
+.btn-danger{color:var(--red);border-color:transparent}
+.btn-danger:hover{background:var(--red-light);border-color:var(--red-light)}
+
+/* ── Task list ── */
+.task-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem}
+.task-item{display:flex;align-items:flex-start;gap:11px;padding:.75rem 1rem;border-bottom:1px solid var(--border);transition:background .1s}
+.task-item:last-child{border-bottom:none}
+.task-item:hover{background:var(--surface-2)}
+.task-item.is-done{opacity:.55}
+.check-btn{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border-strong);background:transparent;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .12s;padding:0}
+.check-btn.checked{background:var(--accent);border-color:var(--accent)}
+.check-icon{display:none;color:#fff;font-size:12px;font-weight:700;line-height:1}
+.check-btn.checked .check-icon{display:block}
+.task-body{flex:1;min-width:0}
+.task-name{font-size:14px;color:var(--text);line-height:1.4;word-break:break-word}
+.task-name.struck{text-decoration:line-through;color:var(--text-3)}
+.task-chips{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.chip{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500;white-space:nowrap}
+.chip-red{background:var(--red-light);color:var(--red)}
+.chip-amber{background:var(--amber-light);color:var(--amber)}
+.chip-green{background:var(--accent-light);color:var(--accent-text)}
+.chip-gray{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.chip-blue{background:var(--blue-light);color:var(--blue)}
+.chip-purple{background:var(--purple-light);color:var(--purple)}
+.task-actions{display:flex;gap:3px;flex-shrink:0;opacity:0;transition:opacity .12s}
+.task-item:hover .task-actions{opacity:1}
+
+/* ── Add / Edit form ── */
+.form-panel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.form-row.tri{grid-template-columns:1fr 1fr 1fr}
+.form-input{width:100%;padding:7px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;outline:none;transition:border-color .12s}
+.form-input:focus{border-color:var(--accent)}
+.form-input.full{width:100%;margin-bottom:8px}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:.25rem}
+
+/* ── Project cards ── */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;margin-bottom:1rem}
+.project-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.125rem;box-shadow:var(--shadow)}
+.project-card-name{font-size:14px;font-weight:600;margin-bottom:2px;color:var(--text)}
+.project-card-meta{font-size:12px;color:var(--text-3);margin-bottom:.625rem}
+.progress-track{background:var(--surface-2);border-radius:6px;height:5px;overflow:hidden;margin-bottom:5px}
+.progress-fill{height:5px;border-radius:6px;transition:width .4s ease}
+.progress-pct{font-size:12px;color:var(--text-2);font-weight:500}
+
+/* ── AI plan ── */
+.ai-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.125rem 1.25rem;margin-bottom:1rem}
+.ai-box-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.ai-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;background:var(--accent-light);color:var(--accent-text);padding:3px 9px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
+.ai-day{margin-bottom:.875rem}
+.ai-day:last-child{margin-bottom:0}
+.ai-day-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:.375rem;display:flex;align-items:center;gap:8px}
+.ai-day-name::after{content:'';flex:1;height:1px;background:var(--border)}
+.ai-item{font-size:13px;color:var(--text-2);padding:3px 0;padding-left:12px;position:relative;line-height:1.45}
+.ai-item::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--border-strong)}
+.ai-loading{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-3);padding:.5rem 0}
+.dot-pulse{display:flex;gap:4px}
+.dot-pulse span{width:5px;height:5px;border-radius:50%;background:var(--text-3);animation:dp 1.2s ease-in-out infinite}
+.dot-pulse span:nth-child(2){animation-delay:.2s}
+.dot-pulse span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:var(--surface);font-size:13px;padding:.625rem 1rem;border-radius:var(--radius-sm);box-shadow:var(--shadow-md);z-index:999;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── Modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);padding:1.5rem;width:360px;max-width:100%;box-shadow:var(--shadow-md)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:1rem}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text-3)}
+.empty-icon{font-size:32px;margin-bottom:.5rem;opacity:.35}
+.empty-text{font-size:13px}
+
+/* ── API key setup ── */
+.key-banner{background:var(--amber-light);border:1px solid #e8c97a;border-radius:var(--radius);padding:1rem 1.125rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.875rem;flex-wrap:wrap}
+.key-banner-text{flex:1;min-width:180px;font-size:13px;color:var(--amber)}
+.key-banner strong{display:block;font-size:13.5px;margin-bottom:2px}
+
+/* ── Responsive ── */
+@media(max-width:700px){
+  .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;padding:.75rem 1rem;border-right:none;border-bottom:1px solid var(--border)}
+  .main{margin-left:0;padding:1rem 1rem 3rem}
+  .sidebar-logo{padding:0 0 .75rem;border-bottom:none;margin-bottom:0;flex-basis:100%}
+  .nav-section{display:none}
+  .nav-item{padding:.5rem .75rem;border-radius:var(--radius-sm);font-size:12px}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .week-grid{grid-template-columns:repeat(7,1fr);gap:3px}
+  .wc-name{font-size:9px}
+  .wc-num{font-size:14px}
+  .form-row{grid-template-columns:1fr}
+  .form-row.tri{grid-template-columns:1fr}
+  .page-header{flex-direction:column;gap:.5rem}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">My Assistant</div>
+      <div class="sidebar-logo-sub" id="today-label"></div>
+    </div>
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" data-view="dashboard" onclick="nav('dashboard')">
+      <span class="nav-icon">◈</span> Dashboard
+    </button>
+    <div class="nav-section">Tasks</div>
+    <button class="nav-item" data-view="work" onclick="nav('work')">
+      <span class="nav-icon">⬡</span> Work
+      <span class="nav-badge" id="work-badge" style="display:none"></span>
+    </button>
+    <button class="nav-item" data-view="personal" onclick="nav('personal')">
+      <span class="nav-icon">◎</span> Personal
+      <span class="nav-badge" id="personal-badge" style="display:none"></span>
+    </button>
+    <div class="nav-section">Goals</div>
+    <button class="nav-item" data-view="projects" onclick="nav('projects')">
+      <span class="nav-icon">▲</span> Projects
+    </button>
+    <div class="nav-section">Planning</div>
+    <button class="nav-item" data-view="planner" onclick="nav('planner')">
+      <span class="nav-icon">✦</span> Week Planner
+    </button>
+    <div style="margin-top:auto;padding:.75rem 1.25rem 0;border-top:1px solid var(--border)">
+      <button class="btn btn-sm" style="width:100%;justify-content:center" onclick="openSettings()">⚙ Settings</button>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main" id="main-content">
+    <!-- Rendered by JS -->
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Settings modal -->
+<div class="modal-bg" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">Settings</div>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:.875rem">Paste your Anthropic API key to enable AI week planning. Your key is saved only in your browser and never sent anywhere except Anthropic's API.</p>
+    <input class="form-input full" type="password" id="api-key-input" placeholder="sk-ant-…" />
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:.5rem">Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a> → API Keys</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveApiKey()">Save key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task edit modal -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">Edit task</div>
+    <input class="form-input full" id="edit-title" placeholder="Task title" />
+    <div class="form-row" style="margin-bottom:8px">
+      <select class="form-input" id="edit-priority">
+        <option value="high">High priority</option>
+        <option value="medium">Medium priority</option>
+        <option value="low">Low priority</option>
+      </select>
+      <input class="form-input" type="date" id="edit-due" />
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <input class="form-input" id="edit-category" placeholder="Category" />
+      <input class="form-input" id="edit-project" placeholder="Project / goal" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── State ─── */
+const STORE = 'jassist_v2';
+let state = {
+  workTasks: [
+    {id:'w1',title:'Follow up on Flex Yoga survey results',done:false,priority:'high',due:'2026-06-27',category:'marketing',project:'Flex Yoga Partnership'},
+    {id:'w2',title:'Post week 2 Athlete S&C content on Facebook',done:false,priority:'medium',due:'2026-06-30',category:'social media',project:'Athlete S&C Program'},
+    {id:'w3',title:'Draft July newsletter for The Club',done:false,priority:'medium',due:'2026-07-01',category:'marketing',project:'Member Comms'},
+    {id:'w4',title:'Reach out to Hiland soccer coach re: fall S&C',done:false,priority:'high',due:'2026-06-28',category:'sales',project:'Athlete S&C Program'},
+    {id:'w5',title:'Review annual member survey responses',done:false,priority:'low',due:'2026-07-05',category:'strategy',project:'Strategic Planning'},
+    {id:'w6',title:'Update Google Business Profile photos',done:false,priority:'low',due:'2026-07-08',category:'marketing',project:''},
+  ],
+  personalTasks: [
+    {id:'p1',title:'HYROX training — interval run session',done:false,priority:'high',due:'2026-06-25',category:'training',project:'HYROX Prep'},
+    {id:'p2',title:'HYROX training — sled + row brick',done:false,priority:'high',due:'2026-06-27',category:'training',project:'HYROX Prep'},
+    {id:'p3',title:'Car oil change + tire rotation',done:false,priority:'medium',due:'2026-07-01',category:'errands',project:''},
+    {id:'p4',title:'Bible reading — NT block',done:false,priority:'high',due:'',category:'faith',project:'Devotional'},
+    {id:'p5',title:'LoL ranked sessions (5 games)',done:false,priority:'low',due:'2026-06-29',category:'personal',project:''},
+    {id:'p6',title:'Grocery run',done:false,priority:'medium',due:'2026-06-26',category:'errands',project:''},
+  ],
+  aiPlan: null,
+  apiKey: ''
+};
+let currentView = 'dashboard';
+let editingId = null;
+let editingTab = null;
+
+/* ─── Persistence ─── */
+function load() {
+  try {
+    const s = localStorage.getItem(STORE);
+    if (s) {
+      const parsed = JSON.parse(s);
+      state = { ...state, ...parsed };
+    }
+  } catch(e) {}
+}
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch(e) {}
+}
+
+/* ─── Helpers ─── */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function daysUntil(d) {
+  if (!d) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(d + 'T00:00:00');
+  return Math.round((due - today) / 86400000);
+}
+
+function dueBadge(d) {
+  const n = daysUntil(d);
+  if (n === null) return null;
+  if (n < 0) return { label: 'Overdue', cls: 'chip-red' };
+  if (n === 0) return { label: 'Today', cls: 'chip-red' };
+  if (n <= 2) return { label: n + 'd left', cls: 'chip-red' };
+  if (n <= 7) return { label: n + 'd left', cls: 'chip-amber' };
+  return { label: n + 'd left', cls: 'chip-green' };
+}
+
+function priorityBadge(p) {
+  return { high: { label: 'High', cls: 'chip-red' }, medium: { label: 'Medium', cls: 'chip-amber' }, low: { label: 'Low', cls: 'chip-gray' } }[p] || null;
+}
+
+function sortTasks(arr) {
+  return [...arr].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const po = { high: 0, medium: 1, low: 2 };
+    if (po[a.priority] !== po[b.priority]) return po[a.priority] - po[b.priority];
+    if (a.due && b.due) return new Date(a.due) - new Date(b.due);
+    if (a.due) return -1;
+    if (b.due) return 1;
+    return 0;
+  });
+}
+
+function allTasks() { return [...state.workTasks, ...state.personalTasks]; }
+
+function weekDates() {
+  const today = new Date();
+  const dow = today.getDay();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - dow + i);
+    return d;
+  });
+}
+
+function fmt(d) {
+  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return mo[d.getMonth()] + ' ' + d.getDate();
+}
+
+function fmtFull(d) {
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const mo = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return days[d.getDay()] + ', ' + mo[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ─── Navigation ─── */
+function nav(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  render();
+}
+
+/* ─── Toast ─── */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ─── Settings ─── */
+function openSettings() {
+  document.getElementById('api-key-input').value = state.apiKey || '';
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+function saveApiKey() {
+  state.apiKey = document.getElementById('api-key-input').value.trim();
+  save();
+  closeSettings();
+  toast('API key saved');
+  render();
+}
+
+/* ─── Edit modal ─── */
+function openEdit(id, tab) {
+  editingId = id;
+  editingTab = tab;
+  const arr = tab === 'work' ? state.workTasks : state.personalTasks;
+  const t = arr.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('edit-title').value = t.title;
+  document.getElementById('edit-priority').value = t.priority;
+  document.getElementById('edit-due').value = t.due || '';
+  document.getElementById('edit-category').value = t.category || '';
+  document.getElementById('edit-project').value = t.project || '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEdit() { document.getElementById('edit-modal').classList.remove('open'); editingId = null; }
+function saveEdit() {
+  if (!editingId) return;
+  const arr = editingTab === 'work' ? state.workTasks : state.personalTasks;
+  const i = arr.findIndex(x => x.id === editingId);
+  if (i < 0) return;
+  arr[i] = {
+    ...arr[i],
+    title: document.getElementById('edit-title').value.trim() || arr[i].title,
+    priority: document.getElementById('edit-priority').value,
+    due: document.getElementById('edit-due').value,
+    category: document.getElementById('edit-category').value.trim(),
+    project: document.getElementById('edit-project').value.trim()
+  };
+  if (editingTab === 'work') state.workTasks = arr; else state.personalTasks = arr;
+  save(); closeEdit(); render(); toast('Task updated');
+}
+
+/* ─── Task actions ─── */
+function toggleTask(id, tab) {
+  const arr = tab === 'work' ? state.workTasks : state.personalTasks;
+  const t = arr.find(x => x.id === id);
+  if (t) { t.done = !t.done; save(); updateBadges(); render(); }
+}
+function deleteTask(id, tab) {
+  if (tab === 'work') state.workTasks = state.workTasks.filter(x => x.id !== id);
+  else state.personalTasks = state.personalTasks.filter(x => x.id !== id);
+  save(); render(); toast('Task removed');
+}
+function addTask(tab) {
+  const titleEl = document.getElementById('new-title');
+  const title = titleEl ? titleEl.value.trim() : '';
+  if (!title) { toast('Add a title first'); return; }
+  const t = {
+    id: uid(),
+    title,
+    done: false,
+    priority: document.getElementById('new-priority').value,
+    due: document.getElementById('new-due').value,
+    category: document.getElementById('new-category').value.trim(),
+    project: document.getElementById('new-project').value.trim()
+  };
+  if (tab === 'work') state.workTasks.unshift(t); else state.personalTasks.unshift(t);
+  save(); render(); toast('Task added');
+}
+
+/* ─── Badges ─── */
+function updateBadges() {
+  const wu = state.workTasks.filter(t => !t.done && t.due && daysUntil(t.due) <= 2 && daysUntil(t.due) >= 0).length + state.workTasks.filter(t => !t.done && t.due && daysUntil(t.due) < 0).length;
+  const pu = state.personalTasks.filter(t => !t.done && t.due && daysUntil(t.due) <= 2 && daysUntil(t.due) >= 0).length + state.personalTasks.filter(t => !t.done && t.due && daysUntil(t.due) < 0).length;
+  const wb = document.getElementById('work-badge');
+  const pb = document.getElementById('personal-badge');
+  if (wb) { wb.textContent = wu; wb.style.display = wu > 0 ? '' : 'none'; }
+  if (pb) { pb.textContent = pu; pb.style.display = pu > 0 ? '' : 'none'; }
+}
+
+/* ─── AI Planner ─── */
+async function generatePlan() {
+  if (!state.apiKey) { openSettings(); return; }
+  document.getElementById('ai-generate-btn').disabled = true;
+  document.getElementById('ai-loading').style.display = 'flex';
+  document.getElementById('ai-plan-content').style.display = 'none';
+
+  const wd = weekDates();
+  const weekStr = wd.map(d => ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()] + ' ' + (d.getMonth()+1) + '/' + d.getDate()).join(', ');
+
+  const wOpen = state.workTasks.filter(t => !t.done).map(t => `[WORK] ${t.title}${t.due ? ' (due ' + t.due + ')' : ''} — ${t.priority} priority${t.project ? ', project: ' + t.project : ''}`).join('\n');
+  const pOpen = state.personalTasks.filter(t => !t.done).map(t => `[PERSONAL] ${t.title}${t.due ? ' (due ' + t.due + ')' : ''} — ${t.priority} priority${t.project ? ', project: ' + t.project : ''}`).join('\n');
+
+  const prompt = `You are a personal productivity assistant for Josh, a gym manager and personal trainer in Berlin, OH. He is also training for a HYROX competition (race August 1, about 5 weeks out — running is his main gap). He values faith, integrity, and servant leadership.
+
+Generate a realistic weekly schedule for the week of: ${weekStr}
+
+Open tasks:
+${wOpen || '(none)'}
+${pOpen || '(none)'}
+
+Return ONLY a valid JSON array, no markdown, no explanation, no code fences. Format:
+[{"day":"Monday","date":"YYYY-MM-DD","items":["9:00am — Task description","11:00am — Task description"]},...]
+
+Rules:
+- Include all 7 days (Mon-Sun)
+- Use actual dates from the week above
+- Keep weekends lighter (1-3 items, personal/faith/training)
+- Schedule high-priority and soonest-due tasks earlier in the week
+- Always include at least one daily training block (HYROX prep)
+- Keep each weekday to 4-6 items max
+- Be specific with times; spread tasks realistically through the day
+- On Sunday, include Bible reading / rest`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content.map(c => c.text || '').join('').trim().replace(/```json|```/g, '').trim();
+    state.aiPlan = JSON.parse(raw);
+    save();
+  } catch(e) {
+    state.aiPlan = [{ day: 'Error', date: '', items: ['Could not generate plan. Check your API key in Settings and try again.'] }];
+  }
+  render();
+}
+
+/* ─── Render helpers ─── */
+function renderChips(task) {
+  let html = '';
+  const p = priorityBadge(task.priority);
+  const d = dueBadge(task.due);
+  if (p && !task.done) html += `<span class="chip ${p.cls}">${p.label}</span>`;
+  if (d && !task.done) html += `<span class="chip ${d.cls}">${d.label}</span>`;
+  if (task.category) html += `<span class="chip chip-gray">${esc(task.category)}</span>`;
+  if (task.project) html += `<span class="chip chip-purple">${esc(task.project)}</span>`;
+  return html;
+}
+
+function renderTaskList(tasks, tab) {
+  if (tasks.length === 0) return `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">All clear — add a task above</div></div>`;
+  return tasks.map(t => `
+    <div class="task-item${t.done ? ' is-done' : ''}">
+      <button class="check-btn${t.done ? ' checked' : ''}" onclick="toggleTask('${t.id}','${tab}')" aria-label="${t.done ? 'Mark incomplete' : 'Mark complete'}">
+        <span class="check-icon">✓</span>
+      </button>
+      <div class="task-body">
+        <div class="task-name${t.done ? ' struck' : ''}">${esc(t.title)}</div>
+        <div class="task-chips">${renderChips(t)}</div>
+      </div>
+      <div class="task-actions">
+        <button class="btn btn-icon btn-sm" onclick="openEdit('${t.id}','${tab}')" aria-label="Edit">✎</button>
+        <button class="btn btn-icon btn-sm btn-danger" onclick="deleteTask('${t.id}','${tab}')" aria-label="Delete">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderAddForm(tab) {
+  const cats = tab === 'work'
+    ? ['marketing','social media','sales','strategy','admin','operations','training','other']
+    : ['training','errands','health','faith','personal','family','finance','other'];
+  return `
+    <div class="form-panel" id="add-form" style="display:none">
+      <input class="form-input full" id="new-title" placeholder="Task title…" onkeydown="if(event.key==='Enter')addTask('${tab}')" />
+      <div class="form-row">
+        <select class="form-input" id="new-priority">
+          <option value="high">High priority</option>
+          <option value="medium">Medium priority</option>
+          <option value="low">Low priority</option>
+        </select>
+        <input class="form-input" type="date" id="new-due" />
+      </div>
+      <div class="form-row" style="margin-bottom:.75rem">
+        <select class="form-input" id="new-category">
+          <option value="">Category…</option>
+          ${cats.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <input class="form-input" id="new-project" placeholder="Project / goal (optional)" />
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="document.getElementById('add-form').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="addTask('${tab}')">Add task</button>
+      </div>
+    </div>`;
+}
+
+/* ─── Views ─── */
+function viewDashboard() {
+  const today = new Date();
+  const all = allTasks();
+  const overdue = all.filter(t => !t.done && t.due && daysUntil(t.due) < 0).length;
+  const dueToday = all.filter(t => !t.done && t.due && daysUntil(t.due) === 0).length;
+  const dueWeek = all.filter(t => !t.done && t.due && daysUntil(t.due) > 0 && daysUntil(t.due) <= 7).length;
+  const done = all.filter(t => t.done).length;
+
+  // Week calendar
+  const wd = weekDates();
+  const byDate = {};
+  wd.forEach(d => { byDate[d.toDateString()] = []; });
+  state.workTasks.forEach(t => {
+    if (!t.due) return;
+    const k = new Date(t.due + 'T00:00:00').toDateString();
+    if (byDate[k]) byDate[k].push({ ...t, _tab: 'work' });
+  });
+  state.personalTasks.forEach(t => {
+    if (!t.due) return;
+    const k = new Date(t.due + 'T00:00:00').toDateString();
+    if (byDate[k]) byDate[k].push({ ...t, _tab: 'personal' });
+  });
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const weekHTML = wd.map(d => {
+    const isToday = d.toDateString() === today.toDateString();
+    const evts = byDate[d.toDateString()] || [];
+    const pips = evts.slice(0, 3).map(e => `<div class="wc-pip ${e._tab === 'work' ? 'pip-work' : 'pip-personal'}" title="${esc(e.title)}">${esc(e.title.length > 14 ? e.title.slice(0,13)+'…' : e.title)}</div>`).join('');
+    const more = evts.length > 3 ? `<div style="font-size:10px;color:var(--text-3)">+${evts.length-3} more</div>` : '';
+    return `<div class="week-col${isToday ? ' is-today' : ''}">
+      <div class="wc-name">${dayNames[d.getDay()]}</div>
+      <div class="wc-num">${d.getDate()}</div>
+      ${pips}${more}
+    </div>`;
+  }).join('');
+
+  // Upcoming deadlines list
+  const upcoming = [...state.workTasks, ...state.personalTasks]
+    .filter(t => !t.done && t.due)
+    .sort((a,b) => new Date(a.due) - new Date(b.due))
+    .slice(0, 6);
+
+  const upcomingHTML = upcoming.length === 0
+    ? `<div class="empty"><div class="empty-icon">✓</div><div class="empty-text">No upcoming deadlines</div></div>`
+    : upcoming.map(t => {
+        const b = dueBadge(t.due); const pb = priorityBadge(t.priority);
+        const isWork = !!state.workTasks.find(x => x.id === t.id);
+        return `<div class="task-item">
+          <div class="task-body">
+            <div class="task-name">${esc(t.title)}</div>
+            <div class="task-chips">
+              <span class="chip ${isWork ? 'chip-blue' : 'chip-purple'}">${isWork ? 'Work' : 'Personal'}</span>
+              ${pb ? `<span class="chip ${pb.cls}">${pb.label}</span>` : ''}
+              ${b ? `<span class="chip ${b.cls}">${b.label}</span>` : ''}
+              ${t.project ? `<span class="chip chip-gray">${esc(t.project)}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+  return `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">${fmtFull(today)}</div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-num stat-red">${overdue}</div><div class="stat-label">Overdue</div></div>
+      <div class="stat-card"><div class="stat-num stat-amber">${dueToday}</div><div class="stat-label">Due today</div></div>
+      <div class="stat-card"><div class="stat-num stat-blue">${dueWeek}</div><div class="stat-label">Due this week</div></div>
+      <div class="stat-card"><div class="stat-num stat-green">${done}</div><div class="stat-label">Completed</div></div>
+    </div>
+    <div class="toolbar"><div class="toolbar-left"><span class="section-label">This week</span></div><div style="display:flex;gap:6px"><span class="chip chip-blue" style="font-size:11px">■ Work</span><span class="chip chip-purple" style="font-size:11px">■ Personal</span></div></div>
+    <div class="week-grid" style="margin-bottom:1.5rem">${weekHTML}</div>
+    <div class="toolbar"><span class="section-label">Upcoming deadlines</span><button class="btn btn-sm" onclick="nav('work')">All work tasks →</button></div>
+    <div class="task-list">${upcomingHTML}</div>`;
+}
+
+function viewTasks(tab) {
+  const tasks = sortTasks(tab === 'work' ? state.workTasks : state.personalTasks);
+  const open = tasks.filter(t => !t.done).length;
+  const label = tab === 'work' ? 'Work tasks' : 'Personal tasks';
+  const icon = tab === 'work' ? '⬡' : '◎';
+
+  return `
+    <div class="page-header">
+      <div><div class="page-title">${icon} ${label}</div><div class="page-sub">${open} open · ${tasks.length - open} completed</div></div>
+      <button class="btn btn-accent" onclick="toggleAddForm()">+ Add task</button>
+    </div>
+    ${renderAddForm(tab)}
+    <div class="task-list">${renderTaskList(tasks, tab)}</div>`;
+}
+
+function viewProjects() {
+  function buildProjects(tasks, tab) {
+    const map = {};
+    tasks.forEach(t => {
+      if (!t.project) return;
+      if (!map[t.project]) map[t.project] = { total: 0, done: 0, tab };
+      map[t.project].total++;
+      if (t.done) map[t.project].done++;
+    });
+    return map;
+  }
+  const wp = buildProjects(state.workTasks, 'work');
+  const pp = buildProjects(state.personalTasks, 'personal');
+
+  function cardHTML(name, { total, done, tab }) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const color = tab === 'work' ? '#185FA5' : '#3d2d8a';
+    return `<div class="project-card">
+      <div class="project-card-name">${esc(name)}</div>
+      <div class="project-card-meta">${done} of ${total} tasks complete · ${tab === 'work' ? 'Work' : 'Personal'}</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="progress-pct">${pct}%</div>
+    </div>`;
+  }
+
+  const wKeys = Object.keys(wp);
+  const pKeys = Object.keys(pp);
+
+  const workHTML = wKeys.length > 0
+    ? `<div class="toolbar" style="margin-top:.25rem"><span class="section-label">Work projects</span></div><div class="project-grid">${wKeys.map(k => cardHTML(k, wp[k])).join('')}</div>`
+    : '';
+  const personalHTML = pKeys.length > 0
+    ? `<div class="toolbar" style="margin-top:.5rem"><span class="section-label">Personal goals & areas</span></div><div class="project-grid">${pKeys.map(k => cardHTML(k, pp[k])).join('')}</div>`
+    : '';
+
+  const empty = wKeys.length === 0 && pKeys.length === 0
+    ? `<div class="empty" style="margin-top:2rem"><div class="empty-icon">▲</div><div class="empty-text">Tag tasks with a project name to track progress here</div></div>` : '';
+
+  return `
+    <div class="page-header"><div><div class="page-title">▲ Projects & Goals</div><div class="page-sub">Progress across all active work and personal projects</div></div></div>
+    ${workHTML}${personalHTML}${empty}`;
+}
+
+function viewPlanner() {
+  const hasKey = !!state.apiKey;
+  const keyBanner = !hasKey ? `
+    <div class="key-banner">
+      <div class="key-banner-text"><strong>API key needed</strong>Add your Anthropic API key in Settings to enable AI week planning.</div>
+      <button class="btn btn-sm" onclick="openSettings()">Open settings →</button>
+    </div>` : '';
+
+  let planHTML = '';
+  if (state.aiPlan) {
+    planHTML = state.aiPlan.map(day => `
+      <div class="ai-day">
+        <div class="ai-day-name">${esc(day.day)}${day.date ? ' <span style="font-size:11px;color:var(--text-3);font-weight:400">'+esc(day.date)+'</span>' : ''}</div>
+        ${(day.items || []).map(item => `<div class="ai-item">${esc(item)}</div>`).join('')}
+      </div>`).join('');
+  }
+
+  return `
+    <div class="page-header">
+      <div><div class="page-title">✦ Week Planner</div><div class="page-sub">AI-generated schedule based on your open tasks</div></div>
+      <button class="btn btn-accent" id="ai-generate-btn" onclick="generatePlan()" ${!hasKey ? 'disabled' : ''}>✦ Generate this week's plan</button>
+    </div>
+    ${keyBanner}
+    <div class="ai-box">
+      <div class="ai-box-header">
+        <span class="ai-badge">✦ AI schedule</span>
+        ${state.aiPlan ? `<button class="btn btn-sm" onclick="state.aiPlan=null;save();render()">Clear</button>` : ''}
+      </div>
+      <div class="ai-loading" id="ai-loading" style="display:none">
+        <div class="dot-pulse"><span></span><span></span><span></span></div>
+        <span>Building your week plan…</span>
+      </div>
+      <div id="ai-plan-content">
+        ${state.aiPlan ? planHTML : `<div class="empty" style="padding:1.5rem 0"><div class="empty-icon">✦</div><div class="empty-text">Hit "Generate this week's plan" to get a personalized schedule based on your tasks</div></div>`}
+      </div>
+    </div>`;
+}
+
+/* ─── Main render ─── */
+function render() {
+  const main = document.getElementById('main-content');
+  if (currentView === 'dashboard') main.innerHTML = viewDashboard();
+  else if (currentView === 'work') main.innerHTML = viewTasks('work');
+  else if (currentView === 'personal') main.innerHTML = viewTasks('personal');
+  else if (currentView === 'projects') main.innerHTML = viewProjects();
+  else if (currentView === 'planner') main.innerHTML = viewPlanner();
+  updateBadges();
+}
+
+function toggleAddForm() {
+  const f = document.getElementById('add-form');
+  if (f) { f.style.display = f.style.display === 'none' ? 'block' : 'none'; if (f.style.display === 'block') document.getElementById('new-title').focus(); }
+}
+
+/* ─── Init ─── */
+const today = new Date();
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dayNames2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+document.getElementById('today-label').textContent = dayNames2[today.getDay()] + ', ' + months[today.getMonth()] + ' ' + today.getDate();
+
+load();
+render();
+</script>
+</body>
+</html>
